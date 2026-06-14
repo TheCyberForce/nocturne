@@ -162,3 +162,32 @@ func TestResponseFromImpostor(t *testing.T) {
 	_ = msg
 }
 
+func TestReplayWindow(t *testing.T) {
+	var w ReplayWindow
+	steps := []struct {
+		ctr  uint64
+		want bool
+	}{
+		{0, true}, {0, false}, {1, true}, {1, false}, {5, true}, {3, true}, {3, false},
+		{5, false}, {4, true}, {2, true}, {2, false},
+		{WindowSize + 10, true}, {WindowSize + 10, false},
+		{10, false},             // fell out of the window
+		{11, true}, {11, false}, // oldest still inside
+		{WindowSize + 9, true},
+		{10 * WindowSize, true}, {10*WindowSize - 1, true}, {10*WindowSize - 1, false},
+		{9 * WindowSize, false}, {9*WindowSize + 1, true},
+	}
+	for i, s := range steps {
+		if got := w.Accept(s.ctr); got != s.want {
+			t.Fatalf("step %d: Accept(%d) = %v, want %v", i, s.ctr, got, s.want)
+		}
+	}
+	// Every counter is accepted exactly once, in any order within the window.
+	var w2 ReplayWindow
+	for c := uint64(0); c < 3*WindowSize; c += 2 {
+		if !w2.Accept(c+1) || !w2.Accept(c) || w2.Accept(c+1) || w2.Accept(c) {
+			t.Fatalf("pairwise reorder failed at %d", c)
+		}
+	}
+}
+
