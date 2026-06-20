@@ -3,6 +3,7 @@ package proto
 import (
 	"bytes"
 	"crypto/ecdh"
+	"net/netip"
 	"testing"
 	"time"
 )
@@ -191,3 +192,38 @@ func TestReplayWindow(t *testing.T) {
 	}
 }
 
+func TestCookie(t *testing.T) {
+	ini, res := mustKey(t), mustKey(t)
+	var jar CookieJar
+	addr := netip.MustParseAddrPort("192.0.2.7:4000")
+	now := time.Now()
+	msg, st, _ := CreateInit(ini, PublicOf(res), 3, now, nil)
+	cookie := jar.Cookie(addr, now)
+	if CheckMac2(cookie[:], msg) {
+		t.Fatal("mac2 valid without a cookie")
+	}
+	reply := CreateCookieReply(PublicOf(res), msg, cookie)
+	if len(reply) != CookieReplySize {
+		t.Fatalf("cookie reply size %d", len(reply))
+	}
+	got, err := st.ConsumeCookieReply(PublicOf(res), reply)
+	if err != nil || !bytes.Equal(got, cookie[:]) {
+		t.Fatalf("cookie roundtrip: %v", err)
+	}
+	reply[40] ^= 1
+	if _, err := st.ConsumeCookieReply(PublicOf(res), reply); err == nil {
+		t.Fatal("tampered cookie reply accepted")
+	}
+	msg2, _, _ := CreateInit(ini, PublicOf(res), 4, now, got)
+	if !CheckGate(PublicOf(res), msg2) || !CheckMac2(cookie[:], msg2) {
+		t.Fatal("init with cookie rejected")
+	}
+	other := jar.Cookie(netip.MustParseAddrPort("192.0.2.8:4000"), now)
+	if CheckMac2(other[:], msg2) {
+		t.Fatal("cookie is not bound to the source address")
+	}
+	later := jar.Cookie(addr, now.Add(cookieLifetime+time.Second))
+	if later == cookie {
+		t.Fatal("cookie secret did not rotate")
+	}
+}
