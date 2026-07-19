@@ -190,3 +190,63 @@ func fastTiming() *Timing {
 	return &t
 }
 
+// Traffic keeps flowing across several rekeys, with no packet lost.
+func TestRekey(t *testing.T) {
+	a, b := pair(t, fastTiming(), netip.AddrPort{}, nil)
+	first := map[*Device]*session{}
+	for i := 0; i < 150; i++ {
+		out := ipv4("10.9.0.1", "10.9.0.2", i)
+		a.tun.in <- out
+		b.tun.expect(t, out)
+		back := ipv4("10.9.0.2", "10.9.0.1", i)
+		b.tun.in <- back
+		a.tun.expect(t, back)
+		if i == 0 {
+			first[a.dev], first[b.dev] = a.dev.order[0].current(), b.dev.order[0].current()
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	for _, n := range []node{a, b} {
+		cur := n.dev.order[0].current()
+		if cur == nil || cur == first[n.dev] {
+			t.Fatal("session was never rekeyed")
+		}
+	}
+	// Old sessions are forgotten: only current/previous/next (+ a pending
+	// handshake) may be indexed.
+	a.dev.imu.RLock()
+	defer a.dev.imu.RUnlock()
+	if len(a.dev.index) > 4 {
+		t.Fatalf("%d indexes retained", len(a.dev.index))
+	}
+}
+
+// An idle session expires and its keys are dropped; the next packet
+// triggers a fresh handshake.
+func TestExpiryAndRecovery(t *testing.T) {
+	a, b := pair(t, fastTiming(), netip.AddrPort{}, nil)
+	p := ipv4("10.9.0.1", "10.9.0.2", 64)
+	a.tun.in <- p
+	b.tun.expect(t, p)
+	time.Sleep(1100 * time.Millisecond)
+	if a.dev.order[0].current() != nil || b.dev.order[0].current() != nil {
+		t.Fatal("expired session still installed")
+	}
+	a.tun.in <- p
+	b.tun.expect(t, p)
+}
+
+func TestPersistentKeepalive(t *testing.T) {
+	a, b := pair(t, fastTiming(), netip.AddrPort{}, func(ca, cb *Config) {
+		ca.Peers[0].Keepalive = 50 * time.Millisecond
+	})
+	// Without any traffic from A, B must learn A's endpoint and be able
+	// to reach it, and stay able to across rekeys.
+	for i := 0; i < 4; i++ {
+		time.Sleep(400 * time.Millisecond)
+		p := ipv4("10.9.0.2", "10.9.0.1", 64+i)
+		b.tun.in <- p
+		a.tun.expect(t, p)
+	}
+}
+
