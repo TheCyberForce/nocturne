@@ -152,3 +152,54 @@ using a session before the counter reaches 2^60.
 The cookie is `MAC(secret, source IP || source port)` where `secret` is a
 random value the responder replaces every two minutes.
 
+## 5. Processing rules
+
+### 5.1 Responder receiving an Init
+
+1. If the length is not 1328 or mac1 is wrong, **drop silently.**
+2. If the responder is under load and mac2 does not match the cookie for
+   the source address, send a Cookie reply and stop. No public-key
+   operation has been performed at this point.
+3. Decrypt. On any failure, drop silently.
+4. If the static key is not a configured peer, drop silently.
+5. If the timestamp is not strictly greater than the last accepted
+   timestamp from this peer, drop silently (replay).
+6. Send the Response to the Init's source address and keep the new session
+   as *next*. Do **not** send data on it and do **not** change the peer's
+   endpoint yet.
+
+### 5.2 Initiator receiving a Response
+
+If the receiver index matches the pending handshake and the confirmation
+tag verifies, the session becomes *current* and the peer's endpoint
+becomes the Response's source address. The initiator must then send a
+Data packet promptly (a keepalive if it has nothing queued).
+
+### 5.3 Receiving Data
+
+1. Look up the session by receiver index; drop if unknown or expired.
+2. Decrypt; drop on failure.
+3. Check the counter against a sliding window of 2048 counters; drop if
+   already seen or too old. The window is updated only after step 2.
+4. If the session was *next*, it is now confirmed: it becomes *current*.
+5. If the session is *current*, set the peer's endpoint to the source
+   address of this datagram.
+6. Drop the inner packet unless its source address is inside the peer's
+   allowed prefixes.
+
+Step 4 is what makes a replayed Init harmless: an attacker replaying one
+can make the responder create an unconfirmed session, but cannot confirm
+it, so the live session and endpoint are untouched.
+
+### 5.4 Session lifetime
+
+| Timer | Value |
+|---|---|
+| Rekey after | 120 s (responder side: 135 s) |
+| Reject after | 180 s |
+| Handshake retry | 5 s, new ephemeral keys each time |
+| Handshake give up | 90 s |
+
+A peer keeps at most three sessions per remote: *previous*, *current*
+and *next*. Keys of older sessions are discarded.
+
