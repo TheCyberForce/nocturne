@@ -203,3 +203,51 @@ it, so the live session and endpoint are untouched.
 A peer keeps at most three sessions per remote: *previous*, *current*
 and *next*. Keys of older sessions are discarded.
 
+## 6. Security properties
+
+Assuming the primitives hold:
+
+- **Mutual authentication** by static X25519 keys (`DH(si, Sr)` and
+  `DH(er, Si)`), and by the PSK when one is set.
+- **Forward secrecy.** Compromise of both static keys after a session ends
+  does not reveal its traffic (`DH(er, Ei)`).
+- **Harvest-now-decrypt-later resistance.** An adversary who can later
+  break X25519 still needs the ML-KEM-768 shared secret.
+- **Identity hiding.** The initiator's static key is encrypted to the
+  responder; a passive observer learns neither identity.
+- **Replay protection** for handshakes (timestamps) and data (counters).
+- **Key separation.** Every key is used for one purpose and direction;
+  every derivation is bound to the full transcript.
+- **No amplification.** Every reply is smaller than the message that
+  triggered it.
+
+## 7. Threat model
+
+In scope: an attacker who can read, drop, replay, reorder, inject and
+modify any packet on the network, and who may later obtain long-term keys.
+
+Out of scope: compromise of an endpoint while a session is live; traffic
+analysis (packet sizes are only padded to 16 bytes and timing is not
+hidden); hiding the fact that *some* encrypted UDP protocol is in use.
+
+## 8. Known trade-offs
+
+- Authentication is classical. A quantum adversary active *during* the
+  handshake could impersonate a peer; past traffic stays safe. A PSK
+  restores authentication in that scenario.
+- Identity hiding of the initiator is not forward secret: whoever later
+  obtains the responder's static key can decrypt recorded Inits and learn
+  who connected (not what they sent).
+- Init timestamps are kept in memory. After a responder restart, one old
+  Init per peer can be replayed; this creates an unconfirmed session and
+  a Response, and nothing else.
+- Anyone who knows a server's public key can make it send 64 byte cookie
+  replies while it is under load.
+- The Init is 1328 bytes, so the path must carry 1356 byte IPv4 (1376
+  byte IPv6) datagrams unfragmented.
+
+## 9. Limitations
+
+This protocol and its implementation have not been reviewed by
+cryptographers and have no formal proof. Do not use them to protect
+anything that matters until that changes.
