@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 160" role="img" aria-label="Nocturne: move in silence">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1a1840"/>
+      <stop offset="1" stop-color="#0b0a1f"/>
+    </linearGradient>
+    <linearGradient id="moon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4f3ff"/>
+      <stop offset="1" stop-color="#a9a4e8"/>
+    </linearGradient>
+    <mask id="crescent">
+      <rect width="520" height="160" fill="#000"/>
+      <circle cx="80" cy="80" r="44" fill="#fff"/>
+      <circle cx="98" cy="68" r="38" fill="#000"/>
+    </mask>
+  </defs>
+  <rect width="520" height="160" rx="18" fill="url(#sky)"/>
+  <g fill="#c9c6f5">
+    <circle cx="150" cy="34" r="1.4"/>
+    <circle cx="470" cy="30" r="1.2" opacity=".7"/>
+    <circle cx="436" cy="126" r="1.5" opacity=".5"/>
+    <circle cx="28" cy="26" r="1.1" opacity=".6"/>
+    <circle cx="492" cy="84" r="1" opacity=".8"/>
+  </g>
+  <rect width="520" height="160" fill="url(#moon)" mask="url(#crescent)"/>
+  <!-- the tunnel: a single quiet line passing through the crescent -->
+  <path d="M96 92 H150" stroke="#7c74ff" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 9"/>
+  <circle cx="96" cy="92" r="4" fill="#7c74ff"/>
+  <text x="168" y="88" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="44" font-weight="300" letter-spacing="9" fill="#f4f3ff">NOCTURNE</text>
+  <text x="170" y="116" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" letter-spacing="5" fill="#8f8ad6">MOVE IN SILENCE</text>
+</svg>
