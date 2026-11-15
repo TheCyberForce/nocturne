@@ -21,7 +21,7 @@ import (
 	"github.com/Dr33kos/nocturne/internal/tun"
 )
 
-const version = "0.1.0"
+const version = "0.4.0"
 
 const banner = `
       _..._        N O C T U R N E
