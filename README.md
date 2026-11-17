@@ -106,4 +106,4 @@ unshare -Urnm scripts/netns-test.sh    # a real tunnel between two network names
 
 ## License
 
-MIT
+Free for everyone to use, modify and share, under the [MIT License](LICENSE.md).
