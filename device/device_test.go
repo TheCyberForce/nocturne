@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Dr33kos/nocturne/internal/proto"
+	"github.com/TheCyberForce/nocturne/internal/proto"
 )
 
 // chanTun is an in-memory TUN: the test injects outbound packets on in

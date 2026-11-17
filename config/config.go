@@ -4,16 +4,18 @@ package config
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"net/netip"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/Dr33kos/nocturne/internal/device"
-	"github.com/Dr33kos/nocturne/internal/proto"
+	"github.com/TheCyberForce/nocturne/device"
+	"github.com/TheCyberForce/nocturne/internal/proto"
 )
 
 // Tunnel is a parsed tunnel file.
@@ -32,9 +34,17 @@ func Load(path string) (*Tunnel, error) {
 		return nil, err
 	}
 	defer f.Close()
-	if st, err := f.Stat(); err == nil && st.Mode().Perm()&0o077 != 0 {
+	// Windows has no permission bits; access there is governed by ACLs.
+	if st, err := f.Stat(); err == nil && runtime.GOOS != "windows" && st.Mode().Perm()&0o077 != 0 {
 		fmt.Fprintf(os.Stderr, "warning: %s is readable by other users; it holds a private key (chmod 600)\n", path)
 	}
+	return Parse(path, f)
+}
+
+// Parse reads and validates a tunnel file from r. path is used for error
+// messages and for the default interface name.
+func Parse(path string, f io.Reader) (*Tunnel, error) {
+	var err error
 	t := &Tunnel{
 		Name:   strings.TrimSuffix(filepath.Base(path), filepath.Ext(path)),
 		Listen: netip.AddrPortFrom(netip.IPv6Unspecified(), 0),

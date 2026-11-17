@@ -1,4 +1,4 @@
-module github.com/Dr33kos/nocturne
+module github.com/TheCyberForce/nocturne
 
 go 1.26.0
 

@@ -15,13 +15,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Dr33kos/nocturne/internal/config"
-	"github.com/Dr33kos/nocturne/internal/device"
-	"github.com/Dr33kos/nocturne/internal/proto"
-	"github.com/Dr33kos/nocturne/internal/tun"
+	"github.com/TheCyberForce/nocturne/config"
+	"github.com/TheCyberForce/nocturne/device"
+	"github.com/TheCyberForce/nocturne/internal/proto"
+	"github.com/TheCyberForce/nocturne/internal/tun"
 )
 
-const version = "0.4.0"
+const version = "0.5.0"
 
 const banner = `
       _..._        N O C T U R N E

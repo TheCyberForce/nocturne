@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Dr33kos/nocturne/internal/proto"
+	"github.com/TheCyberForce/nocturne/internal/proto"
 )
 
 // session is one set of transport keys. A peer holds up to three: the
@@ -198,4 +198,38 @@ func (p *Peer) current() *session {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return p.cur
+}
+
+// GenerateKey returns a new private key and its public key, both encoded
+// for use in a tunnel file.
+func GenerateKey() (private, public string, err error) {
+	k, err := proto.GeneratePrivateKey()
+	if err != nil {
+		return "", "", err
+	}
+	return EncodeKey([proto.KeySize]byte(k.Bytes())), EncodeKey(proto.PublicOf(k)), nil
+}
+
+// PeerStats is a snapshot of one peer, for user interfaces.
+type PeerStats struct {
+	PublicKey    string
+	Endpoint     netip.AddrPort // zero if unknown
+	Connected    bool           // a current session exists
+	SessionStart time.Time      // zero if not connected
+	Rx, Tx       uint64         // bytes on the wire
+}
+
+// Stats returns a snapshot of every peer.
+func (d *Device) Stats() []PeerStats {
+	out := make([]PeerStats, 0, len(d.order))
+	for _, p := range d.order {
+		p.mu.Lock()
+		s := PeerStats{PublicKey: EncodeKey(p.pub), Endpoint: p.endpoint, Rx: p.rx.Load(), Tx: p.tx.Load()}
+		if p.cur != nil {
+			s.Connected, s.SessionStart = true, p.cur.created
+		}
+		p.mu.Unlock()
+		out = append(out, s)
+	}
+	return out
 }

@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Dr33kos/nocturne/internal/proto"
+	"github.com/TheCyberForce/nocturne/internal/proto"
 )
 
 // Tun is the layer 3 interface the device reads from and writes to.
